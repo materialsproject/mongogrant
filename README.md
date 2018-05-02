@@ -30,3 +30,25 @@ and manage allow/deny rules, grant / revoke grants of
 credentials, etc. A small Flask app (**untested** so far)
 is included as an example for deploying a server to which
 clients can connect to obtain tokens and credentials. 
+
+## Set up a server
+
+```python
+from mongogrant.config import Config
+from mongogrant.server import Server, check, path, seed, Mailgun
+
+server = Server(Config(check=check, path=path, seed=seed()))
+server.set_mgdb("mongodb://mgserver:mgserverpass@my.host.com/mongogrant")
+server.set_mailer(Mailgun, dict(
+    api_key="YOUR_KEY",
+    base_url="https://api.mailgun.net/v3/YOUR_DOMAIN",
+    from_addr="mongogrant@YOUR_DOMAIN"))
+server.set_admin_client(
+    host="other1.host.com",
+    username="mongoadmin",
+    password="mongoadminpass")
+server.set_admin_client(
+    host="other2.host.com",
+    username="mongoadmin",
+    password="mongoadminpass")
+```
