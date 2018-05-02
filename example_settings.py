@@ -18,6 +18,6 @@ if os.path.exists(SERVER_CONFIG_PATH):
         Config(check=SERVER_CONFIG_CHECK, path=SERVER_CONFIG_PATH)
         SERVER_CONFIG_SEED = None
     except ConfigError:
-        SERVER_CONFIG_SEED = seed
+        SERVER_CONFIG_SEED = seed()
 else:
-    SERVER_CONFIG_SEED = seed
+    SERVER_CONFIG_SEED = seed()
