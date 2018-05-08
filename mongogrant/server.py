@@ -22,7 +22,6 @@ path = os.path.join(os.getenv("HOME"), '.mongogrant.server.json')
 def seed():
     """Initial config."""
     return {
-        "endpoint": "",
         "mgdb_uri": "",
         "mailer": {
             "class": "",
@@ -41,13 +40,12 @@ def check(config: dict):
     Raises:
         ConfigError: if config is improperly formatted.
     """
-    if not set(config.keys()) >= {"mgdb_uri", "mailer", "auth", "endpoint"}:
+    if not set(config.keys()) >= {"mgdb_uri", "mailer", "auth"}:
         raise ConfigError("config missing one of "
-                          "{mgdb_uri,mailer,auth,endpoint} keys")
+                          "{mgdb_uri,mailer,auth} keys")
     if not (isinstance(config["mgdb_uri"], str) and
             isinstance(config["mailer"], dict) and
-            isinstance(config["auth"], dict) and
-            isinstance(config["endpoint"], str)):
+            isinstance(config["auth"], dict)):
         raise ConfigError("config field of wrong type")
     if not set(config["mailer"].keys()) >= {"class", "kwargs"}:
         raise ConfigError("mailer config missing fields")
@@ -55,9 +53,6 @@ def check(config: dict):
         if not re.match("mongodb://[^:]+:[^@]+@[^/]+/.+", config["mgdb_uri"]):
             raise ConfigError("mgdb_uri must be of form "
                               "mongodb://{username}:{password}@{host}/{db}")
-    if config["endpoint"]:
-        if not re.match("https?://.+", config["endpoint"]):
-            raise ConfigError("endpoint must be valid URL")
 
 
 class Server:
@@ -372,29 +367,33 @@ class Server:
             return None
         return doc["email"]
 
-    def send_link_token_mail(self, email: str):
+    def send_link_token_mail(self, email: str, secure: bool = False,
+                             host: str = "localhost"):
         """Send email to deliver fetch token via one-time link.
 
         Args:
             email (str): email address.
+            secure (bool): whether link should use https or not.
+            host (str): server host including port if not :80.
 
         Returns:
             str: "OK" if email sent, error message o/w.
         """
         generated = self.generate_tokens(email)
         if not generated:
-            return "Email {} not allowed by server. Contact server admin."
+            return ("Email {} not allowed by server. Contact server admin."
+                    .format(email))
         doc = self.mgdb.tokens.find_one(dict(email=email), ["link"])
         if not doc:
             return ("Email {} allowed by server, but "
                     "error in generating token. Contact server admin")
         doc["link"].sort(key=lambda t: t["expires"])
-        link_token = doc["link"][-1]
-        endpoint = self.cfg.load()["endpoint"]
-        link = "{}/verifytoken/{}".format(endpoint, link_token)
+        link_token = doc["link"][-1]["token"]
+        link = "{}://{}/verifytoken/{}".format(
+            "https" if secure else "http", host, link_token)
         text = ("Retrieve your mongogrant fetch token by opening this "
                 "one-time link: {}".format(link))
-        subject = "Mongogrant fetch token from {}".format(endpoint)
+        subject = "Mongogrant fetch token from {}".format(host)
         self.mailer.send(to=email, subject=subject, text=text)
         return "OK"
 

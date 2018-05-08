@@ -32,7 +32,8 @@ def get_token(email: str):
     Returns:
         str: Status of request (email sent, or error)
     """
-    result = server.send_link_token_mail(email)
+    result = server.send_link_token_mail(
+        email, secure=request.is_secure, host=request.host)
     if result == "OK":
         return jsonify(msg="Sent link to {} to retrieve token.".format(email))
     elif "not allowed by server" in result:
@@ -54,7 +55,7 @@ def verify_token(token: str):
     return server.fetch_token_from_link(token)
 
 
-@app.route('/grant/<token>')
+@app.route('/grant/<token>', methods=['POST'])
 def grant_credentials(token: str):
     """Grant user/pass for role on host db given token.
 
@@ -70,12 +71,12 @@ def grant_credentials(token: str):
     db = request.form.get("db")
     role = request.form.get("role")
     if not host or not db or role not in ("read", "readWrite"):
-        return jsonify("Missing valid host, db, and/or role", status=400)
+        return jsonify("Missing valid host, db, and/or role"), 400
 
     grant = server.grant_with_token(token, host, db, role)
     if not grant:
         return jsonify("Cannot grant. Try getting new token, "
-                       "or contact server admin.", status=403)
+                       "or contact server admin."), 403
 
     return jsonify(grant)
 

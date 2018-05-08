@@ -189,8 +189,9 @@ class TestServer(TestCase):
     def test_send_link_token_mail(self):
         self.server.set_mgdb(self.mgdb_uri)
         self.server.set_mailer(Mailgun, self.config_mailer["kwargs"])
-        self.assertIn("not allowed by server",
-                      self.server.send_link_token_mail(self.test_email))
+        errmsg = self.server.send_link_token_mail(self.test_email)
+        self.assertIn(self.test_email, errmsg)
+        self.assertIn("not allowed by server", errmsg)
         self.server.set_rule(
             self.test_email, "localhost", self.test_dbname, "read")
         self.assertEqual(self.server.send_link_token_mail(self.test_email),

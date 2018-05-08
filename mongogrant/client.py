@@ -1,8 +1,10 @@
+import re
 import typing
 from uuid import uuid4
 
 import os
 import pymongo
+import requests
 from pymongo import MongoClient
 
 from mongogrant.config import Config, ConfigError
@@ -74,6 +76,9 @@ class Client:
                 r["token"] = token
                 break
         else:
+            # Remove trailing "/" in endpoint
+            if endpoint.endswith("/"):
+                endpoint = endpoint[:-1]
             rems.append(dict(endpoint=endpoint, token=token))
             self.cfg.save(config)
 
@@ -202,8 +207,20 @@ class Client:
                             .format(**a))
                 else:
                     return a
-        # TODO Try getting auth info from server.
-        # No dependence on server module. Just requests with token to endpoint.
+        print("No credentials for {}:{}/{} found in local config"
+              .format(role, host, db))
+        for remote in self.remotes():
+            print("Requesting credentials from {}".format(remote["endpoint"]))
+            url = "{endpoint}/grant/{token}".format(**remote)
+            rv = requests.post(url, dict(host=host, db=db, role=role))
+            if rv.status_code == 200:
+                d = rv.json()
+                print("Found credentials. Saving to local config...")
+                self.set_auth(host, db, role, d["username"], d["password"],
+                              check=True)
+                return self.get_auth(host, db, role)
+            else:
+                print("{}".format(rv.json()))
         return None
 
     def db(self, spec: str, **mongoclient_kwargs):
@@ -212,16 +229,26 @@ class Client:
         Args:
             spec (str): of the format <role>:<host>/<db>, where: role is one of
                 {"read", "readWrite"} or aliases {"ro", "rw"}; host is a db host
-                (w/ optional port) or alias; and db is a db on that host, or alias.
-            mongoclient_kwargs (dict): Extra keyword arguments to pass to invocation
-                of MongoClient.
+                (w/ optional port) or alias; and db is a db on that host,
+                or alias.
+            mongoclient_kwargs (dict): Extra keyword arguments to pass to
+                invocation of MongoClient.
 
         Returns:
             pymongo.database.Database: from spec
+
+        Raises:
+            AuthError: If no valid auth credentials are available from local
+                config or via remotes to connect to database.
         """
         role, host_db = spec.split(':', 1)
         host, dbname_or_alias = host_db.split('/', 1)
-        auth = self.get_auth(host, dbname_or_alias, role).copy()
+        auth = self.get_auth(host, dbname_or_alias, role)
+        if auth is None:
+            raise AuthError("No valid auth credentials are available from"
+                            "local config or via remotes to connect to "
+                            "database.")
+        auth = auth.copy()
         dbname = auth["db"]
         auth["authSource"] = dbname
         auth.pop("db")
