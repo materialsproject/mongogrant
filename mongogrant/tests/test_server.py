@@ -58,6 +58,10 @@ class TestServer(TestCase):
             "dropDatabase")
         os.remove(self.config_path)
 
+    def test_empty_init(self):
+        os.environ["HOME"] = os.path.split(self.config_path)[0]
+        self.assertTrue(Server().cfg is not None)
+
     def test_set_mgdb(self):
         self.server.set_mgdb(self.mgdb_uri)
         self.assertEqual(self.server.cfg.load()["mgdb_uri"], self.mgdb_uri)

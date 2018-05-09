@@ -58,9 +58,9 @@ class Client:
         Args:
             config (Config): client configuration
         """
-        if config is None:
-            self.cfg = Config(check=check, path=path, seed=seed)
         self.cfg = config
+        if config is None:
+            self.cfg = Config(check=check, path=path, seed=seed())
 
     def set_remote(self, endpoint: str, token: str):
         """Set endpoint URL and auth token to retrieve database credentials.

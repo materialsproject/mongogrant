@@ -74,9 +74,9 @@ class Server:
         Args:
             config (Config): server configuration
         """
-        if config is None:
-            self.cfg = Config(check=check, path=path, seed=seed)
         self.cfg = config
+        if config is None:
+            self.cfg = Config(check=check, path=path, seed=seed())
         # XXX Tried combining @property and @lru_cache decorators for mgdb
         # et al., but couldn't call e.g. self.mgdb.cache_clear(), so using
         # private props for caching.

@@ -32,6 +32,10 @@ class TestClient(TestCase):
         config = Config(check=check, path=self.config_path, seed=seed())
         self.client = Client(config)
 
+    def test_empty_init(self):
+        os.environ["HOME"] = os.path.split(self.config_path)[0]
+        self.assertTrue(Client().cfg is not None)
+
     def test_remotes(self):
         self.assertEqual(len(self.client.remotes()), 0)
         self.client.set_remote("ep1", "tk1")
