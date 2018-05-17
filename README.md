@@ -53,6 +53,7 @@ Transfer-Encoding: chunked
 
 Fetch token: <FETCH_TOKEN> (expires 2018-06-19 18:05:30.508000 UTC)
 
+> # end-of-line "\" below only necessary if command spans two lines.
 > http --form POST http://grantmedb.materialsproject.org/grant/<FETCH_TOKEN> \
 >   role=readWrite host=mongodb03.nersc.gov db=dw_phonons
 HTTP/1.1 200 OK
