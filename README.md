@@ -25,9 +25,54 @@ target_db = client.db("rw:staging/core")
 # ...Do database stuff!
 ```
 
+One can also go entirely through a running app's API:
+
+```bash
+> # Using the HTTPie command line HTTP client (https://httpie.org/)
+> # Install via `{brew,apt-get,pip,...} install httpie`
+> http GET http://grantmedb.materialsproject.org/gettoken/dwinston@lbl.gov
+HTTP/1.1 200 OK
+Connection: keep-alive
+Content-Length: 59
+Content-Type: application/json
+Date: Thu, 17 May 2018 18:05:30 GMT
+Server: nginx/1.10.3
+
+{
+    "msg": "Sent link to dwinston@lbl.gov to retrieve token."
+}
+
+> http GET http://grantmedb.materialsproject.org/verifytoken/<VERIFY_TOKEN>
+HTTP/1.1 200 OK
+Connection: keep-alive
+Content-Encoding: gzip
+Content-Type: text/html; charset=utf-8
+Date: Thu, 17 May 2018 18:06:17 GMT
+Server: nginx/1.10.3
+Transfer-Encoding: chunked
+
+Fetch token: <FETCH_TOKEN> (expires 2018-06-19 18:05:30.508000 UTC)
+
+> http --form POST http://grantmedb.materialsproject.org/grant/<FETCH_TOKEN> \
+>   role=readWrite host=mongodb03.nersc.gov db=dw_phonons
+HTTP/1.1 200 OK
+Connection: keep-alive
+Content-Length: 108
+Content-Type: application/json
+Date: Thu, 17 May 2018 18:11:22 GMT
+Server: nginx/1.10.3
+
+{
+    "password": "<PASSWORD>",
+    "username": "dwinston_lbl.gov_readWrite"
+}
+
+>
+```
+
 You can run a "server" on your laptop in a Jupyer notebook
 and manage allow/deny rules, grant / revoke grants of
-credentials, etc. A small Flask app (**untested** so far)
+credentials, etc. A small Flask app
 is included as an example for deploying a server to which
 clients can connect to obtain tokens and credentials. 
 
