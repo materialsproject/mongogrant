@@ -39,7 +39,7 @@ Date: Thu, 17 May 2018 18:05:30 GMT
 Server: nginx/1.10.3
 
 {
-    "msg": "Sent link to dwinston@lbl.gov to retrieve token."
+    "msg": "Sent link to <YOUR_EMAIL> to retrieve token."
 }
 
 > http GET http://grantmedb.materialsproject.org/verifytoken/<VERIFY_TOKEN>
