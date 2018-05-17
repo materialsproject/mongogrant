@@ -30,7 +30,7 @@ One can also go entirely through a running app's API:
 ```bash
 > # Using the HTTPie command line HTTP client (https://httpie.org/)
 > # Install via `{brew,apt-get,pip,...} install httpie`
-> http GET http://grantmedb.materialsproject.org/gettoken/dwinston@lbl.gov
+> http GET http://grantmedb.materialsproject.org/gettoken/<YOUR_EMAIL>
 HTTP/1.1 200 OK
 Connection: keep-alive
 Content-Length: 59
