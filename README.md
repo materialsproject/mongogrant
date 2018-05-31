@@ -16,11 +16,20 @@ from mongogrant.client import Client
 # `Client()` with no args looks to
 # ~/.mongogrant.json for config
 client = Client()
+
+# No config yet? Set one up with at least one remote for fetching credentials
+# See below for how to obtain <FETCH_TOKEN> for a given <ENDPOINT>.
+client.set_remote("http://grantmedb.materialsproject.org", "<FETCH_TOKEN>")
+
+# Set some aliases if you'd like:
+client.set_alias("dev", "mongodb03.nersc.gov", "host")
+client.set_alias("prod", "mongodb04.nersc.gov", "host")
+client.set_alias("fireworks", "fw_dw_phonons", "db")
+
 # pymongo.database.Database with read role
-source_db = client.db("ro:dev/core")
-# readWrite role. config stores "staging" host alias
-# and "core" db alias
-target_db = client.db("rw:staging/core")
+source_db = client.db("ro:dev/fireworks")
+# readWrite role: config stores "prod" host alias and "fireworks" db alias
+target_db = client.db("rw:prod/fireworks")
 
 # ...Do database stuff!
 ```
