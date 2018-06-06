@@ -15,7 +15,7 @@ setup(
     description='Generate and grant credentials for MongoDB databases',
     long_description=open(os.path.join(module_dir, 'README.md')).read(),
     long_description_content_type="text/markdown",
-    install_requires=["pymongo", "Flask", "requests"],
+    install_requires=["pymongo>=3.6", "Flask", "requests"],
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Programming Language :: Python :: 3',
