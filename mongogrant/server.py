@@ -458,7 +458,10 @@ def passphrase(n=5, sep="-", wordspath="/usr/share/dict/words"):
         lines = f.readlines()
 
     words = set(line.strip().lower() for line in lines)
-    return sep.join(random.sample(words, n))
+    joined_words = sep.join(random.sample(words, n))
+    # Strip single quote 
+    joined_words = joined_words.replace("'", "")
+    return joined_words
 
 
 class Mailer(metaclass=ABCMeta):
