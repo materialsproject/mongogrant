@@ -12,6 +12,7 @@ from uuid import uuid4
 import pymongo
 import requests
 from pymongo import MongoClient, DeleteOne, ReplaceOne
+from pymongo.errors import DuplicateKeyError
 
 from mongogrant.config import ConfigError, Config
 
@@ -262,7 +263,13 @@ class Server:
         d = self.admin_client(host)[db]
         username = "{}_{}".format("_".join(email.split('@')), role)
         password = passphrase()
-        d.command(command, username, pwd=password, roles=[role])
+        try:
+            d.command(command, username, pwd=password, roles=[role])
+        except DuplicateKeyError as e:
+            # Trying to create user that already exists on db
+            # and is not known to mongogrant. Leave alone.
+            print(str(e))
+            return None
         self.mgdb.grants.update_one(
             grant_filter, {"$set": dict(username=username)}, upsert=True)
         return dict(username=username, password=password)
