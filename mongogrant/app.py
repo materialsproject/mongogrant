@@ -37,9 +37,9 @@ def get_token(email: str):
     if result == "OK":
         return jsonify(msg="Sent link to {} to retrieve token.".format(email))
     elif "not allowed by server" in result:
-        return Response(result, status_code=403, mimetype="application/json")
+        return Response(result, status=403, content_type="application/json")
     else:
-        return Response(result, status_code=418, mimetype="application/json")
+        return Response(result, status=418, content_type="application/json")
 
 
 @app.route('/verifytoken/<token>')

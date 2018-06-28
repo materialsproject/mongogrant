@@ -378,16 +378,17 @@ class Server:
         return doc["email"]
 
     def send_link_token_mail(self, email: str, secure: bool = False,
-                             host: str = "localhost"):
+                             host: str = "localhost", dry_run: bool = False):
         """Send email to deliver fetch token via one-time link.
 
         Args:
             email (str): email address.
             secure (bool): whether link should use https or not.
             host (str): server host including port if not :80.
+            dry_run (bool): whether to send mail or to return message text.
 
         Returns:
-            str: "OK" if email sent, error message o/w.
+            str: "OK" if email sent, message text if dry_run, error message o/w.
         """
         generated = self.generate_tokens(email)
         if not generated:
@@ -404,8 +405,11 @@ class Server:
         text = ("Retrieve your mongogrant fetch token by opening this "
                 "one-time link: {}".format(link))
         subject = "Mongogrant fetch token from {}".format(host)
-        self.mailer.send(to=email, subject=subject, text=text)
-        return "OK"
+        if not dry_run:
+            self.mailer.send(to=email, subject=subject, text=text)
+            return "OK"
+        else:
+            return text
 
     def fetch_token_from_link(self, link_token: str):
         """Retrieve fetch token given link token, and remove link token.
