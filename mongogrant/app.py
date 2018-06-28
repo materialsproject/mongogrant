@@ -1,6 +1,6 @@
 import os
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, Response
 
 from mongogrant.config import Config
 from mongogrant.server import Server, check, path
@@ -37,9 +37,9 @@ def get_token(email: str):
     if result == "OK":
         return jsonify(msg="Sent link to {} to retrieve token.".format(email))
     elif "not allowed by server" in result:
-        return jsonify(result, status=403)
+        return Response(result, status_code=403, mimetype="application/json")
     else:
-        return jsonify(result, status=418)
+        return Response(result, status_code=418, mimetype="application/json")
 
 
 @app.route('/verifytoken/<token>')
