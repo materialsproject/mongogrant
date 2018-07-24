@@ -79,11 +79,10 @@ class Client:
                 r["token"] = token
                 break
         else:
-            # Remove trailing "/" in endpoint
             if endpoint.endswith("/"):
                 endpoint = endpoint[:-1]
             rems.append(dict(endpoint=endpoint, token=token))
-            self.cfg.save(config)
+        self.cfg.save(config)
 
     def remotes(self):
         """Get list of remotes.
