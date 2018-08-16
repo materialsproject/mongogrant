@@ -12,7 +12,7 @@ from uuid import uuid4
 import pymongo
 import requests
 from pymongo import MongoClient, DeleteOne, ReplaceOne
-from pymongo.errors import DuplicateKeyError
+from pymongo.errors import DuplicateKeyError, OperationFailure
 
 from mongogrant.config import ConfigError, Config
 
@@ -265,6 +265,11 @@ class Server:
         password = passphrase()
         try:
             d.command(command, username, pwd=password, roles=[role])
+        except OperationFailure as e:
+            if str(e) == "User {}@{} not found".format(username, db):
+                # User erroneously in self.mgdb.grants collection
+                command = "createUser"
+                d.command(command, username, pwd=password, roles=[role])
         except DuplicateKeyError as e:
             # Trying to create user that already exists on db
             # and is not known to mongogrant. Leave alone.
