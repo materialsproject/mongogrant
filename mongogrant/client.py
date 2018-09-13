@@ -173,7 +173,7 @@ class Client:
                 break
         else:
             config["auth"].append(auth)
-            self.cfg.save(config)
+        self.cfg.save(config)
 
     def get_auth(self, host: str, db: str, role: str, as_uri=False):
         """Get auth credentials for role on host db.
