@@ -19,7 +19,7 @@ client = Client()
 
 # No config yet? Set one up with at least one remote for fetching credentials
 # See below for how to obtain <FETCH_TOKEN> for a given <ENDPOINT>.
-client.set_remote("http://grantmedb.materialsproject.org", "<FETCH_TOKEN>")
+client.set_remote("https://grantmedb.materialsproject.org", "<FETCH_TOKEN>")
 
 # Set some aliases if you'd like:
 client.set_alias("dev", "mongodb03.nersc.gov", "host")
@@ -39,7 +39,7 @@ One can also go entirely through a running app's API:
 ```bash
 > # Using the HTTPie command line HTTP client (https://httpie.org/)
 > # Install via `{brew,apt-get,pip,...} install httpie`
-> http GET http://grantmedb.materialsproject.org/gettoken/<YOUR_EMAIL>
+> http GET https://grantmedb.materialsproject.org/gettoken/<YOUR_EMAIL>
 HTTP/1.1 200 OK
 Connection: keep-alive
 Content-Length: 59
@@ -51,7 +51,7 @@ Server: nginx/1.10.3
     "msg": "Sent link to <YOUR_EMAIL> to retrieve token."
 }
 
-> http GET http://grantmedb.materialsproject.org/verifytoken/<VERIFY_TOKEN>
+> http GET https://grantmedb.materialsproject.org/verifytoken/<VERIFY_TOKEN>
 HTTP/1.1 200 OK
 Connection: keep-alive
 Content-Encoding: gzip
@@ -63,7 +63,7 @@ Transfer-Encoding: chunked
 Fetch token: <FETCH_TOKEN> (expires 2018-06-19 18:05:30.508000 UTC)
 
 > # end-of-line "\" below only necessary if command spans two lines.
-> http --form POST http://grantmedb.materialsproject.org/grant/<FETCH_TOKEN> \
+> http --form POST https://grantmedb.materialsproject.org/grant/<FETCH_TOKEN> \
 >   role=readWrite host=mongodb03.nersc.gov db=dw_phonons
 HTTP/1.1 200 OK
 Connection: keep-alive
