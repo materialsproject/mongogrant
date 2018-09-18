@@ -1,13 +1,14 @@
 import os
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
 module_dir = os.path.dirname(os.path.abspath(__file__))
 
 setup(
     name='mongogrant',
-    version="0.1.16",
-    packages=["mongogrant"],
+    version="0.1.17",
+    packages=find_packages(),
+    include_package_data=True,
     url='https://github.com/materialsproject/mongogrant/',
     license='modified BSD',
     author='MP Team',
@@ -15,7 +16,12 @@ setup(
     description='Generate and grant credentials for MongoDB databases',
     long_description=open(os.path.join(module_dir, 'README.md')).read(),
     long_description_content_type="text/markdown",
-    install_requires=["pymongo>=3.6", "Flask", "requests"],
+    install_requires=[
+        "Click",
+        "pymongo>=3.6",
+        "Flask",
+        "requests",
+    ],
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Programming Language :: Python :: 3',
@@ -29,4 +35,8 @@ setup(
     ],
     keywords='mongodb pymongo authentication authorization',
     python_requires='>=3',
+    entry_points='''
+        [console_scripts]
+        mgrant=mongogrant.scripts.mgrant:cli
+    ''',
 )
