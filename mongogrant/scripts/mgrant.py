@@ -46,7 +46,7 @@ def settoken(endpoint, token):
 @click.argument('db')
 @click.option('--role', default='read', help='"read" or "readWrite"')
 @click.option('--host', default=DEFAULT_HOST, help='MongoDB host')
-@click.option('--atomate_starters', is_flag=True, default=True,
+@click.option('--atomate-starters', is_flag=True, default=False,
               help='Print db.json and my_launchpad.yaml files')
 def db(db, role, host, atomate_starters):
     """

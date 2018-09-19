@@ -6,7 +6,7 @@ module_dir = os.path.dirname(os.path.abspath(__file__))
 
 setup(
     name='mongogrant',
-    version="0.1.17",
+    version="0.1.18",
     packages=find_packages(),
     include_package_data=True,
     url='https://github.com/materialsproject/mongogrant/',
