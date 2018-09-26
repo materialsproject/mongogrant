@@ -17,7 +17,8 @@ def cli():
 
 @click.command()
 @click.option('--endpoint', default=DEFAULT_ENDPOINT,
-              help='auth server. default: "{}"'.format(DEFAULT_ENDPOINT))
+              help=('Mongogrant endpoint. Defaults to that of your first '
+                    'remote. default: "{}"'.format(DEFAULT_ENDPOINT)))
 @click.argument('email')
 def init(endpoint, email):
     """Request a token.
@@ -37,10 +38,14 @@ def init(endpoint, email):
 
 @click.command()
 @click.option('--endpoint', default=DEFAULT_ENDPOINT,
-              help='auth server. default: "{}"'.format(DEFAULT_ENDPOINT))
+              help=('Mongogrant endpoint. Defaults to that of your first '
+                    'remote. default: "{}"'.format(DEFAULT_ENDPOINT)))
 @click.argument('token')
 def settoken(endpoint, token):
-    """Set token for a remote"""
+    """Set token for a remote
+
+    TOKEN: Your fetch token
+    """
     if endpoint is None:
         print("You have no saved endpoints. Provide an endpoint argument.")
         return
@@ -62,9 +67,9 @@ def db(db, role, host, atomate_starters):
     """
     Get credentials for a database.
 
-    Args:
-        host: Database host. Ask your mongogrant administrator
-        db: Database name. Ask your mongogrant administrator
+    \b
+    HOST: Database host. Ask your mongogrant administrator
+    DB: Database name. Ask your mongogrant administrator
     """
     if atomate_starters and role == 'read':
         print("Need '--role readWrite' for atomate credentials.")
@@ -108,27 +113,26 @@ wf_user_indices: []
 
 @click.command()
 @click.option('--endpoint', default=DEFAULT_ENDPOINT,
-              help='auth server. default: "{}"'.format(DEFAULT_ENDPOINT))
+              help=('Mongogrant endpoint. Defaults to that of your first '
+                    'remote. default: "{}"'.format(DEFAULT_ENDPOINT)))
 @click.argument('email')
 @click.argument('spec')
 def allow(endpoint, email, spec):
     """
     [Admins only] Set allow rules for users.
 
-    Args:
-        endpoint (str): Mongogrant endpoint. Defaults to that of your first
-            remote.
-        email (str): Email address of user to update.
-        spec (str): mongogrant spec, e.g. "ro:host/dbname", "rw:host/dbname"
-
+    \b
+    EMAIL: Email address of user to update.
+    SPEC: mongogrant spec, e.g. "ro:host/dbname", "rw:host/dbname"
     """
     client = Client()
     remote = next(r for r in client.remotes() if r["endpoint"] == endpoint)
     token = remote["token"]
     role, host_db = spec.split(":")
     host, db = host_db.split("/")
-    if role not in ("ro", "read", "rw", "readWrite"):
-        print("Role not recognized")
+    roles = {"ro", "rw", "read", "readWrite"}
+    if role not in roles:
+        print("Role not recognized. Must be one of {}".format(roles))
         return
 
     if role == "ro":
