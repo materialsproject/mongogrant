@@ -13,16 +13,14 @@ mgrant init mcurie@espci.fr \
 Click the link in your email to prove you're you, copy the fetch token from the
 loaded page, and then run:
 ```
-mgrant settoken wh054900d70k3ny35y0u423 \
-  --endpoint https://grantmedb.materialsproject.org
+mgrant settoken wh054900d70k3ny35y0u423
 ```
 Finally, get credentials for your database. Here, Marie is asking mongogrant to
 print out db.json and my_launchpad.yaml starter files for
 [FireWorks](https://materialsproject.github.io/fireworks/) and
 [atomate](https://atomate.org/):
 ```
-mgrant db fw_mc_polonium \
-  --host mongodb03.nersc.gov \
+mgrant db mongodb03.nersc.gov fw_mc_polonium \
   --role readWrite \
   --atomate-starters
 ```
