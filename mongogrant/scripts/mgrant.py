@@ -30,6 +30,8 @@ def init(endpoint, email):
 
     rv = requests.get("{}/gettoken/{}".format(endpoint, email))
     print(rv.json())
+    client = Client()
+    client.set_remote(endpoint, "")
     print("Copy the fetch token from the link and run `mgrant settoken`.")
 
 
