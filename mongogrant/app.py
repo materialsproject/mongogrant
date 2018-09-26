@@ -80,7 +80,8 @@ def grant_credentials(token: str):
 
     return jsonify(grant)
 
-@app_route('/setrule/<token>', methods=['POST'])
+
+@app.route('/setrule/<token>', methods=['POST'])
 def set_rule(token: str):
     """Set allow/deny rule for user role on host db.
 
