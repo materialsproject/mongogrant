@@ -205,6 +205,20 @@ class Server:
         self.mgdb[which].update_one(dict(email=email, host=host, role=role),
                                     {"$addToSet": {"dbs": db}}, upsert=True)
 
+    def get_ruler(self, token: str):
+        """Get the spec for which allow/deny rules this token's owner can set.
+
+        Args:
+            token (str): fetch token
+
+        Returns:
+            bool: The ruler doc if the owner can set rules, None o/w
+        """
+        email = self.email_from_fetch_token(token)
+        if email is None:
+            return None
+        return self.mgdb.rulers.find_one({"email": email})
+
     def can_grant(self, email: str, host: str, db: str, role: str):
         """Can the server grant credentials for role on host db to email owner?
 
