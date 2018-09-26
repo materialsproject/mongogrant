@@ -136,7 +136,7 @@ def allow(endpoint, email, spec):
     rv = requests.post("{}/setrule/{}".format(endpoint, token), data=dict(
         email=email, host=host, db=db, role=role, which="allow",
     ))
-    if rv.json()["success"].lower() == "true":
+    if rv.json()["success"]:
         print("{} is now authorized to obtain {} credentials for {}/{} "
               "via mongogrant (from remote \"{}\").".format(
             email, "read" if role == "read" else "read and readWrite",
