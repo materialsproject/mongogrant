@@ -137,3 +137,21 @@ server.set_admin_client(
     username="mongoadmin",
     password="mongoadminpass")
 ```
+
+### Appointing others to set allow/deny rules
+
+A mongogrant server admin can add "ruler" users who can set allow/deny rules for users via the `mgrant` CLI. An admin sets a ruler document in the `server.mgdb` collection, e.g.
+```python
+server.mgdb.rulers.replace_one(
+    {"email": "starlord@lbl.gov"},
+    {
+        "email": "starlord@lbl.gov",
+        "hosts": ["mongodb03.nersc.gov"],
+        "dbs": ["mp_", "fw_"],
+        "emails": ["@lbl.gov"],
+        "which": ["allow"]
+    },
+    upsert=True)
+```
+Allows user `starlord@lbl.gov` to set `allow` rules for any user with an "@lbl.gov" email address on the Mongo host "mongodb03.nersc.gov" for any database name prefixed with "mp_" or "fw_". Any field in a ruler document can be set to "all" rather than an array.
+
