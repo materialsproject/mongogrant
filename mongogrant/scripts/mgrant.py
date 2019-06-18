@@ -30,10 +30,14 @@ def init(endpoint, email):
         return
 
     rv = requests.get("{}/gettoken/{}".format(endpoint, email))
-    print(rv.json())
+    if rv is None:
+        print("No link was returned. Have you been given access to a database?")
+    else:
+        print(rv.json())
+        print("Copy the fetch token from the link and run `mgrant settoken`.")
+
     client = Client()
     client.set_remote(endpoint, "")
-    print("Copy the fetch token from the link and run `mgrant settoken`.")
 
 
 @click.command()
