@@ -11,20 +11,23 @@ from pymongo import MongoClient
 
 from mongogrant.config import Config
 from mongogrant.server import passphrase, check, seed, Server, Mailgun, Mailer
+from mongogrant.tests.utils import MongodWithAuth
 
 
 class TestServer(TestCase):
     @classmethod
     def setUpClass(cls):
+        cls.mongod_with_auth = MongodWithAuth(port=27020)
+        cls.mongod_with_auth.ensure()
         cls.mgdbname = "test_mgdb_" + uuid4().hex
         cls.admin_client_args = dict(
-            host="localhost", username="mongoadmin", password="mongoadminpass")
+            host="localhost:27020", username="mongoadmin", password="mongoadminpass")
         cls.admin_client_uri = ("mongodb://{username}:{password}@{host}/admin"
                                 .format(**cls.admin_client_args))
         cls.mgdb = MongoClient(cls.admin_client_uri)[cls.mgdbname]
         cls.mgdb.command("createUser", "mgserver",
                          pwd="mgserverpass", roles=["readWrite"])
-        cls.mgdb_uri = ("mongodb://mgserver:mgserverpass@localhost/{}"
+        cls.mgdb_uri = ("mongodb://mgserver:mgserverpass@localhost:27020/{}"
                         .format(cls.mgdbname))
         mailer_domain = "sandboxb188bd08055c4a63be1b70bfe31a2a3c.mailgun.org"
         cls.config_mailer = {
@@ -41,6 +44,7 @@ class TestServer(TestCase):
     def tearDownClass(cls):
         cls.mgdb.command("dropDatabase")
         cls.mgdb.client.close()
+        cls.mongod_with_auth.destroy()
 
     def setUp(self):
         _, self.config_path = tempfile.mkstemp()
@@ -52,9 +56,9 @@ class TestServer(TestCase):
         for c in ("allow", "deny", "tokens", "grants"):
             self.server.mgdb.drop_collection(c)
         self.server.set_admin_client(**self.admin_client_args)
-        self.server.admin_client("localhost")[self.test_dbname].command(
+        self.server.admin_client("localhost:27020")[self.test_dbname].command(
             "dropAllUsersFromDatabase")
-        self.server.admin_client("localhost")[self.test_dbname].command(
+        self.server.admin_client("localhost:27020")[self.test_dbname].command(
             "dropDatabase")
         os.remove(self.config_path)
 
@@ -101,12 +105,12 @@ class TestServer(TestCase):
         self.server.set_mgdb(self.mgdb_uri)
         self.assertRaises(
             ValueError, self.server.set_rule,
-            self.test_email, "localhost", self.test_dbname, "destroy")
+            self.test_email, "localhost:27020", self.test_dbname, "destroy")
         self.assertRaises(
             ValueError, self.server.set_rule,
-            self.test_email, "localhost", self.test_dbname, "read", "consider")
+            self.test_email, "localhost:27020", self.test_dbname, "read", "consider")
         self.server.set_rule(
-            self.test_email, "localhost", self.test_dbname, "read")
+            self.test_email, "localhost:27020", self.test_dbname, "read")
         self.assertTrue(
             self.server.mgdb.allow.count(dict(email=self.test_email)))
 
@@ -114,50 +118,50 @@ class TestServer(TestCase):
         self.server.set_mgdb(self.mgdb_uri)
         self.server.set_admin_client(**self.admin_client_args)
         self.server.set_rule(
-            self.test_email, "localhost", self.test_dbname, "read")
+            self.test_email, "localhost:27020", self.test_dbname, "read")
         self.assertTrue(self.server.can_grant(
-            self.test_email, "localhost", self.test_dbname, "read"))
+            self.test_email, "localhost:27020", self.test_dbname, "read"))
         self.assertFalse(self.server.can_grant(
-            self.test_email, "localhost", self.test_dbname, "readWrite"))
+            self.test_email, "localhost:27020", self.test_dbname, "readWrite"))
         self.server.mgdb.allow.drop()
         self.server.set_rule(
-            self.test_email, "localhost", self.test_dbname, "readWrite")
+            self.test_email, "localhost:27020", self.test_dbname, "readWrite")
         self.assertTrue(self.server.can_grant(
-            self.test_email, "localhost", self.test_dbname, "read"))
+            self.test_email, "localhost:27020", self.test_dbname, "read"))
 
     def test_grant(self):
         self.server.set_mgdb(self.mgdb_uri)
         self.server.set_admin_client(**self.admin_client_args)
         self.server.set_rule(
-            self.test_email, "localhost", self.test_dbname, "read")
+            self.test_email, "localhost:27020", self.test_dbname, "read")
         self.assertTrue(self.server.grant(
-            self.test_email, "localhost", self.test_dbname, "read"))
+            self.test_email, "localhost:27020", self.test_dbname, "read"))
         self.assertFalse(self.server.grant(
-            self.test_email, "localhost", self.test_dbname, "readWrite"))
+            self.test_email, "localhost:27020", self.test_dbname, "readWrite"))
         self.server.set_rule(
-            self.test_email, "localhost", self.test_dbname, "readWrite")
+            self.test_email, "localhost:27020", self.test_dbname, "readWrite")
         self.assertTrue(self.server.grant(
-            self.test_email, "localhost", self.test_dbname, "readWrite"))
+            self.test_email, "localhost:27020", self.test_dbname, "readWrite"))
         self.server.set_rule(
-            self.test_email, "localhost", self.test_dbname, "readWrite", "deny")
+            self.test_email, "localhost:27020", self.test_dbname, "readWrite", "deny")
         self.assertTrue(self.server.grant(
-            self.test_email, "localhost", self.test_dbname, "read"))
+            self.test_email, "localhost:27020", self.test_dbname, "read"))
         self.assertFalse(self.server.grant(
-            self.test_email, "localhost", self.test_dbname, "readWrite"))
+            self.test_email, "localhost:27020", self.test_dbname, "readWrite"))
 
     def test_revoke_grants(self):
         self.server.set_mgdb(self.mgdb_uri)
         self.server.set_admin_client(**self.admin_client_args)
         self.server.set_rule(
-            self.test_email, "localhost", self.test_dbname, "read")
+            self.test_email, "localhost:27020", self.test_dbname, "read")
         granted = self.server.grant(
-            self.test_email, "localhost", self.test_dbname, "read")
-        client = MongoClient("mongodb://{username}:{password}@localhost/{db}"
+            self.test_email, "localhost:27020", self.test_dbname, "read")
+        client = MongoClient("mongodb://{username}:{password}@localhost:27020/{db}"
                              .format(db=self.test_dbname, **granted))
         self.assertTrue(client.server_info())
         client.close()
         self.server.revoke_grants(self.test_email)
-        client = MongoClient("mongodb://{username}:{password}@localhost/{db}"
+        client = MongoClient("mongodb://{username}:{password}@localhost:27020/{db}"
                              .format(db=self.test_dbname, **granted))
         self.assertRaises(pymongo.errors.OperationFailure, client.server_info)
         client.close()
@@ -166,13 +170,13 @@ class TestServer(TestCase):
         self.server.set_mgdb(self.mgdb_uri)
         self.assertFalse(self.server.generate_tokens(self.test_email))
         self.server.set_rule(
-            self.test_email, "localhost", self.test_dbname, "read")
+            self.test_email, "localhost:27020", self.test_dbname, "read")
         self.assertTrue(self.server.generate_tokens(self.test_email))
 
     def test_delete_expired_tokens(self):
         self.server.set_mgdb(self.mgdb_uri)
         self.server.set_rule(
-            self.test_email, "localhost", self.test_dbname, "read")
+            self.test_email, "localhost:27020", self.test_dbname, "read")
         self.server.generate_tokens(
             self.test_email, link_expires="0.1 s", fetch_expires="0.1 s")
         self.assertTrue(self.server.mgdb.tokens.count())
@@ -183,7 +187,7 @@ class TestServer(TestCase):
     def test_email_from_fetch_token(self):
         self.server.set_mgdb(self.mgdb_uri)
         self.server.set_rule(
-            self.test_email, "localhost", self.test_dbname, "read")
+            self.test_email, "localhost:27020", self.test_dbname, "read")
         self.server.generate_tokens(self.test_email)
         doc = self.server.mgdb.tokens.find_one()
         fetch_token = doc["fetch"][0]["token"]
@@ -197,14 +201,14 @@ class TestServer(TestCase):
         self.assertIn(self.test_email, errmsg)
         self.assertIn("not allowed by server", errmsg)
         self.server.set_rule(
-            self.test_email, "localhost", self.test_dbname, "read")
+            self.test_email, "localhost:27020", self.test_dbname, "read")
         self.assertEqual(self.server.send_link_token_mail(self.test_email),
                          "OK")
 
     def test_fetch_token_from_link(self):
         self.server.set_mgdb(self.mgdb_uri)
         self.server.set_rule(
-            self.test_email, "localhost", self.test_dbname, "read")
+            self.test_email, "localhost:27020", self.test_dbname, "read")
         self.server.generate_tokens(self.test_email)
         doc = self.server.mgdb.tokens.find_one()
         link_token = doc["link"][0]["token"]
@@ -218,16 +222,16 @@ class TestServer(TestCase):
         self.server.set_admin_client(**self.admin_client_args)
         self.server.set_mgdb(self.mgdb_uri)
         self.server.set_rule(
-            self.test_email, "localhost", self.test_dbname, "read")
+            self.test_email, "localhost:27020", self.test_dbname, "read")
         self.server.generate_tokens(self.test_email)
         doc = self.server.mgdb.tokens.find_one()
         fetch_token = doc["fetch"][0]["token"]
         self.assertFalse(self.server.grant_with_token(
-            "shadytoken", "localhost", self.test_dbname, "read"))
+            "shadytoken", "localhost:27020", self.test_dbname, "read"))
         self.assertTrue(self.server.grant_with_token(
-            fetch_token, "localhost", self.test_dbname, "read"))
+            fetch_token, "localhost:27020", self.test_dbname, "read"))
         self.assertFalse(self.server.grant_with_token(
-            fetch_token, "localhost", self.test_dbname, "readWrite"))
+            fetch_token, "localhost:27020", self.test_dbname, "readWrite"))
 
     def test_passphrase(self):
         for (n, sep) in itertools.product((6, 5), ("-", " ", ".", ",", "_")):
