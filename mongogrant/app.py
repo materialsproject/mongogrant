@@ -75,8 +75,14 @@ def grant_credentials(token: str):
 
     grant = server.grant_with_token(token, host, db, role)
     if not grant:
-        return jsonify("Cannot grant. Try getting new token, "
-                       "or contact server admin."), 403
+        user_email = server.email_from_fetch_token(token, expired_okay=True)
+        if server.can_grant(user_email, host, db, role):
+            return jsonify("Cannot grant. You are allowed to obtain auth credentials for this database, "
+                           "but it looks like your token has expired. "
+                           "Use `mgrant init` to refresh your token."), 403
+        else:
+            return jsonify("Cannot grant. Try getting new token, "
+                           "or contact server admin."), 403
 
     return jsonify(grant)
 
@@ -104,10 +110,23 @@ def set_rule(token: str):
 
     ruler = server.get_ruler(token)
     if ruler is None:
-        return jsonify({
-            "success": False,
-            "error": "Your token is not registered for admin rights."
-        })
+        user_email = server.email_from_fetch_token(token, expired_okay=True)
+        print(user_email)
+        ruler_token_expired = (
+            (user_email is not None) and
+            (server.mgdb.rulers.count_documents({"email": email}) > 0)
+        )
+        if ruler_token_expired:
+            return jsonify({
+                "success": False,
+                "error": ("Your are registered for admin rights, but your token has expired. "
+                          "Use `mgrant init` to refresh your token.")
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "error": "Your token is not registered for admin rights."
+            })
     if not (set(ruler.keys()) >= {"hosts", "dbs", "emails", "which"}):
         return jsonify({
             "success": False,
@@ -148,4 +167,4 @@ def set_rule(token: str):
 
 
 if __name__ == '__main__':
-    app.run()
+    app.run(debug=True)

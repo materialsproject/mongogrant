@@ -379,18 +379,20 @@ class Server:
         if bulk_requests:
             self.mgdb.tokens.bulk_write(bulk_requests)
 
-    def email_from_fetch_token(self, token: str):
-        """Retrieve email given fetch token if not expired.
+    def email_from_fetch_token(self, token: str, expired_okay: bool = False):
+        """Retrieve email given fetch token.
 
         Args:
             token (str): fetch token
+            expired_okay (bool): return email address even if user's token is expired.
 
         Returns:
             str: email address if fetch token not expired, None o/w.
         """
+        when = datetime.min if expired_okay else datetime.utcnow()
         doc = self.mgdb.tokens.find_one({
             "fetch": {"$elemMatch": {"token": token,
-                                     "expires": {"$gte": datetime.utcnow()}}}
+                                     "expires": {"$gte": when}}}
         }, ["email"])
         if not doc:
             return None

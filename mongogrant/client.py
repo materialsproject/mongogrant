@@ -247,8 +247,8 @@ class Client:
         host, dbname_or_alias = host_db.split('/', 1)
         auth = self.get_auth(host, dbname_or_alias, role)
         if auth is None:
-            raise AuthError("No valid auth credentials are available from "
-                            "local config or via remotes to connect to "
+            raise AuthError("No valid auth credentials are accessible, either from "
+                            "local config or via remotes, to connect to "
                             "database.")
         auth = auth.copy()
         dbname = auth["db"]

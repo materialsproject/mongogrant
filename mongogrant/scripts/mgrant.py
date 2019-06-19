@@ -3,7 +3,7 @@ import json
 import click
 import requests
 
-from mongogrant.client import Client
+from mongogrant.client import Client, AuthError
 
 remotes = Client().remotes()
 DEFAULT_ENDPOINT = remotes[0]["endpoint"] if remotes else None
@@ -82,28 +82,31 @@ def db(db, role, host, atomate_starters):
         print("Need '--role readWrite' for atomate credentials.")
         return
     client = Client()
-    if atomate_starters:
-        db_rw = client.db("{}:{}/{}".format(role, host, db))
-        admin = client.get_auth(host, db, role)
-        db_ro = client.db("{}:{}/{}".format("read", host, db))
-        readonly = client.get_auth(host, db, "read")
-        db_json = dict(
-            host=host,
-            database=db,
-            collection="tasks",
-            admin_user=admin['username'],
-            admin_password=admin['password'],
-            readonly_user=readonly['username'],
-            readonly_password=readonly['password'],
-            aliases={}
-        )
-        print(json.dumps(db_json, indent=2))
-        my_launchpad = my_launchpad_template.format(
-            host, db, admin['username'], admin['password'])
-        print(my_launchpad)
-    else:
-        db_we = client.db("{}:{}/{}".format(role, host, db))
-        print("Wrote credentials to ~/.mongogrant.json")
+    try:
+        if atomate_starters:
+            db_rw = client.db("{}:{}/{}".format(role, host, db))
+            admin = client.get_auth(host, db, role)
+            db_ro = client.db("{}:{}/{}".format("read", host, db))
+            readonly = client.get_auth(host, db, "read")
+            db_json = dict(
+                host=host,
+                database=db,
+                collection="tasks",
+                admin_user=admin['username'],
+                admin_password=admin['password'],
+                readonly_user=readonly['username'],
+                readonly_password=readonly['password'],
+                aliases={}
+            )
+            print(json.dumps(db_json, indent=2))
+            my_launchpad = my_launchpad_template.format(
+                host, db, admin['username'], admin['password'])
+            print(my_launchpad)
+        else:
+            db_we = client.db("{}:{}/{}".format(role, host, db))
+            print("Wrote credentials to ~/.mongogrant.json")
+    except AuthError as e:
+        print(e)
 
 
 my_launchpad_template = """
@@ -135,6 +138,9 @@ def allow(endpoint, email, spec):
     client = Client()
     remote = next(r for r in client.remotes() if r["endpoint"] == endpoint)
     token = remote["token"]
+    if not token:
+        print("You do not have a token set for your default endpoint. See `mgrant init --help`.")
+        return
     role, host_db = spec.split(":")
     host, db = host_db.split("/")
     roles = {"ro", "rw", "read", "readWrite"}
