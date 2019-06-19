@@ -3,7 +3,8 @@ import re
 import tempfile
 from unittest import TestCase
 
-from mongogrant.server import Mailgun
+from mongogrant.config import Config
+from mongogrant.server import Mailgun, Server
 from mongogrant.tests.test_server import TestServer
 
 
@@ -30,13 +31,17 @@ class TestApp(TestCase):
             f.write(settings)
         os.environ['MONGOGRANT_SETTINGS'] = self.settings_path
         from mongogrant import app # XXX Import after MONGOGRANT_SETTINGS set
+        app.app.config.from_envvar("MONGOGRANT_SETTINGS")
+        app.server = Server(Config(check=app.app.config["SERVER_CONFIG_CHECK"],
+                               path=app.app.config["SERVER_CONFIG_PATH"],
+                               seed=app.app.config["SERVER_CONFIG_SEED"]))
         app.app.config['TESTING'] = True
         self.app = app
         app.server.set_mgdb(self.testserver.mgdb_uri)
         app.server.set_mailer(Mailgun, self.testserver.config_mailer["kwargs"])
         app.server.set_rule(
             self.testserver.test_email,
-            "localhost", self.testserver.test_dbname, "read")
+            "localhost:27020", self.testserver.test_dbname, "read")
         self.client = app.app.test_client()
 
     def tearDown(self):
@@ -60,24 +65,25 @@ class TestApp(TestCase):
     def test_grant_credentials(self):
         self.app.server.set_admin_client(**self.testserver.admin_client_args)
         self.app.server.generate_tokens(self.testserver.test_email)
-        doc = self.app.server.mgdb.tokens.find_one()
+        doc = self.app.server.mgdb.tokens.find_one({"email": self.testserver.test_email})
         fetch_token = doc["fetch"][0]["token"]
         rv = self.client.post(
             "/grant/shadytoken",
-            data=dict(host="localhost",
+            data=dict(host="localhost:27020",
                       db=self.testserver.test_dbname,
                       role="read"))
         self.assertIn("Cannot grant", str(rv.data))
         rv = self.client.post(
             "/grant/{}".format(fetch_token),
-            data=dict(host="localhost",
+            data=dict(host="localhost:27020",
                       db=self.testserver.test_dbname,
                       role="read"))
+        print(rv)
         self.assertIn("username", rv.get_json())
         self.assertIn("password", rv.get_json())
         rv = self.client.post(
             "/grant/{}".format(fetch_token),
-            data=dict(host="localhost",
+            data=dict(host="localhost:27020",
                       db=self.testserver.test_dbname,
                       role="readWrite"))
         self.assertIn("Cannot grant", str(rv.data))

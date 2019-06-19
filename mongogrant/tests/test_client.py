@@ -9,15 +9,18 @@ from pymongo import MongoClient
 
 from mongogrant.client import Client, check, seed
 from mongogrant.config import Config
+from mongogrant.tests.utils import MongodWithAuth
 
 
 class TestClient(TestCase):
     @classmethod
     def setUpClass(cls):
+        cls.mongod_with_auth = MongodWithAuth(port=27020)
+        cls.mongod_with_auth.ensure()
         _, cls.config_path = tempfile.mkstemp()
         cls.dbname = "test_" + uuid4().hex
         cls.db = MongoClient(
-            "mongodb://mongoadmin:mongoadminpass@localhost/admin")[cls.dbname]
+            "mongodb://mongoadmin:mongoadminpass@localhost:27020/admin")[cls.dbname]
         cls.db.command("createUser", "reader", pwd="readerpass", roles=["read"])
         cls.db.command("createUser", "writer",
                        pwd="writerpass", roles=["readWrite"])
@@ -27,6 +30,7 @@ class TestClient(TestCase):
         os.remove(cls.config_path)
         cls.db.command("dropDatabase")
         cls.db.client.close()
+        cls.mongod_with_auth.destroy()
 
     def setUp(self):
         config = Config(check=check, path=self.config_path, seed=seed())
@@ -79,11 +83,11 @@ class TestClient(TestCase):
         self.assertEqual(auth["host"], host)
 
     def test_db(self):
-        self.client.set_auth("localhost", self.dbname, "read", "reader",
+        self.client.set_auth("localhost:27020", self.dbname, "read", "reader",
                              "readerpass", check=True)
-        self.client.set_auth("localhost", self.dbname, "readWrite", "writer",
+        self.client.set_auth("localhost:27020", self.dbname, "readWrite", "writer",
                              "writerpass", check=True)
-        self.client.set_alias("dev", "localhost", "host")
+        self.client.set_alias("dev", "localhost:27020", "host")
         self.client.set_alias("core", self.dbname, "db")
         self.assertTrue(self.client.get_auth("dev", "core", "ro"))
         db = self.client.db("ro:dev/core")
