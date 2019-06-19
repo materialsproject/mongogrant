@@ -30,8 +30,11 @@ def init(endpoint, email):
         return
 
     rv = requests.get("{}/gettoken/{}".format(endpoint, email))
-    if rv is None:
-        print("No link was returned. Have you been given access to a database?")
+    if rv.status_code == 403:
+        print(rv.reason, ":", rv.text)
+        print("Ensure you have been given access to at least one database.")
+    elif rv.status_code != 200:
+        print(rv.reason, ":", rv.text)
     else:
         print(rv.json())
         print("Copy the fetch token from the link and run `mgrant settoken`.")
