@@ -18,8 +18,8 @@ setup(
     long_description_content_type="text/markdown",
     install_requires=[
         "Click",
-        "pymongo>=3.6",
-        "Flask",
+        "pymongo>=3.8",
+        "Flask>=1.0",
         "requests",
     ],
     classifiers=[
