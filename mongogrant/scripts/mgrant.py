@@ -61,7 +61,9 @@ def settoken(endpoint, token):
     client.set_remote(endpoint, token)
     print("Remember that tokens expire. Run `mgrant init` to request "
           "a fresh token for an endpoint.")
-    print("Run `mgrant db` to get credentials for a database.")
+    print("Run `mgrant db` to get credentials for a database " 
+          "(note that the server you are requesting credentials from "
+          "may require you to be connected through a VPN.)")
 
 
 @click.command()
