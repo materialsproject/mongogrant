@@ -244,7 +244,7 @@ class Client:
                 config or via remotes to connect to database.
         """
         auth = self.get_db_auth_from_spec(spec)
-        return MongoClient(**dict(**auth, **mongoclient_kwargs))[dbname]
+        return MongoClient(**dict(**auth, **mongoclient_kwargs))[auth["authSource"]]
 
     def get_db_auth_from_spec(self, spec: str):
         """Read the Mongo authentication information from a spec "<role>:<host>/<db>."
