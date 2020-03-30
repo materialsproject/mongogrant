@@ -243,6 +243,20 @@ class Client:
             AuthError: If no valid auth credentials are available from local
                 config or via remotes to connect to database.
         """
+        auth = self.get_db_auth_from_spec(spec)
+        return MongoClient(**dict(**auth, **mongoclient_kwargs))[auth["authSource"]]
+
+    def get_db_auth_from_spec(self, spec: str):
+        """Read the Mongo authentication information from a spec "<role>:<host>/<db>."
+        Args:
+            spec (str): of the format <role>:<host>/<db>, where: role is one of
+                {"read", "readWrite"} or aliases {"ro", "rw"}; host is a db host
+                (w/ optional port) or alias; and db is a db on that host,
+                or alias.
+        Returns:
+            dict: authentication information from spec
+
+        """
         role, host_db = spec.split(':', 1)
         host, dbname_or_alias = host_db.split('/', 1)
         auth = self.get_auth(host, dbname_or_alias, role)
@@ -255,8 +269,7 @@ class Client:
         auth["authSource"] = dbname
         auth.pop("db")
         auth.pop("role")
-        return MongoClient(**dict(**auth, **mongoclient_kwargs))[dbname]
-
+        return auth
 
 class AuthError(Exception):
     pass
