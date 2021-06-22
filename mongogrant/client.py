@@ -10,7 +10,7 @@ from pymongo import MongoClient
 from mongogrant.config import Config, ConfigError
 
 
-path = os.path.join(os.getenv("HOME"), '.mongogrant.json')
+path = os.path.join(os.getenv("HOME") or os.path.expanduser("~"), ".mongogrant.json")
 
 
 def seed():
