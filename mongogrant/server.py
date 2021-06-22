@@ -17,7 +17,9 @@ from pymongo.errors import DuplicateKeyError, OperationFailure
 from mongogrant.config import ConfigError, Config
 
 
-path = os.path.join(os.getenv("HOME"), '.mongogrant.server.json')
+path = os.path.join(
+    os.path.expanduser("~") or os.path.expanduser("~"), ".mongogrant.server.json"
+)
 
 
 def seed():
