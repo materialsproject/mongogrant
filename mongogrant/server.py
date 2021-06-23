@@ -17,9 +17,7 @@ from pymongo.errors import DuplicateKeyError, OperationFailure
 from mongogrant.config import ConfigError, Config
 
 
-path = os.path.join(
-    os.path.expanduser("~") or os.path.expanduser("~"), ".mongogrant.server.json"
-)
+path = os.path.join(os.getenv("HOME") or os.path.expanduser("~"), ".mongogrant.json")
 
 
 def seed():
@@ -44,18 +42,21 @@ def check(config: dict):
         ConfigError: if config is improperly formatted.
     """
     if not set(config.keys()) >= {"mgdb_uri", "mailer", "auth"}:
-        raise ConfigError("config missing one of "
-                          "{mgdb_uri,mailer,auth} keys")
-    if not (isinstance(config["mgdb_uri"], str) and
-            isinstance(config["mailer"], dict) and
-            isinstance(config["auth"], dict)):
+        raise ConfigError("config missing one of " "{mgdb_uri,mailer,auth} keys")
+    if not (
+        isinstance(config["mgdb_uri"], str)
+        and isinstance(config["mailer"], dict)
+        and isinstance(config["auth"], dict)
+    ):
         raise ConfigError("config field of wrong type")
     if not set(config["mailer"].keys()) >= {"class", "kwargs"}:
         raise ConfigError("mailer config missing fields")
     if config["mgdb_uri"]:
         if not re.match("mongodb://[^:]+:[^@]+@[^/]+/.+", config["mgdb_uri"]):
-            raise ConfigError("mgdb_uri must be of form "
-                              "mongodb://{username}:{password}@{host}/{db}")
+            raise ConfigError(
+                "mgdb_uri must be of form "
+                "mongodb://{username}:{password}@{host}/{db}"
+            )
 
 
 class Server:
@@ -111,7 +112,7 @@ class Server:
         if self._mgdb is None:
             config = self.cfg.load()
             uri = config["mgdb_uri"]
-            dbname = uri.split('/')[-1]
+            dbname = uri.split("/")[-1]
             self._mgdb = MongoClient(config["mgdb_uri"], connect=False)[dbname]
         return self._mgdb
 
@@ -141,11 +142,11 @@ class Server:
         """
         if self._mailer is None:
             mailconf = self.cfg.load()["mailer"]
-            modname = ".".join(mailconf["class"].split('.')[:-1])
-            clsname = mailconf["class"].split('.')[-1]
+            modname = ".".join(mailconf["class"].split(".")[:-1])
+            clsname = mailconf["class"].split(".")[-1]
             cls = getattr(
-                __import__(modname, globals(), locals(), [clsname], 0),
-                clsname)
+                __import__(modname, globals(), locals(), [clsname], 0), clsname
+            )
             self._mailer = cls(**mailconf["kwargs"])
         return self._mailer
 
@@ -158,9 +159,9 @@ class Server:
             password (str): admin password
         """
         config = self.cfg.load()
-        config["auth"][host] = (
-            "mongodb://{u}:{p}@{h}/{d}"
-            .format(u=username, p=password, h=host, d="admin"))
+        config["auth"][host] = "mongodb://{u}:{p}@{h}/{d}".format(
+            u=username, p=password, h=host, d="admin"
+        )
         self.cfg.save(config)
         self._admin_client.pop(host, None)
 
@@ -179,8 +180,9 @@ class Server:
         if host not in self._admin_client:
             config = self.cfg.load()
             try:
-                client = MongoClient(config["auth"][host], connect=False,
-                                     serverSelectionTimeoutMS=5000)
+                client = MongoClient(
+                    config["auth"][host], connect=False, serverSelectionTimeoutMS=5000
+                )
                 client.server_info()
                 self._admin_client[host] = client
             except pymongo.errors.OperationFailure as e:
@@ -189,8 +191,7 @@ class Server:
                 return ConfigError("Cannot connect: {}".format(e))
         return self._admin_client[host]
 
-    def set_rule(self, email: str, host: str, db: str, role: str,
-                 which="allow"):
+    def set_rule(self, email: str, host: str, db: str, role: str, which="allow"):
         """Allow/deny granting credentials for role on host db to email owner.
 
         Args:
@@ -204,8 +205,11 @@ class Server:
             raise ValueError("role must be one of {'read','readWrite'}")
         if which not in ("allow", "deny"):
             raise ValueError("which must be one of {'allow','deny'}")
-        self.mgdb[which].update_one(dict(email=email, host=host, role=role),
-                                    {"$addToSet": {"dbs": db}}, upsert=True)
+        self.mgdb[which].update_one(
+            dict(email=email, host=host, role=role),
+            {"$addToSet": {"dbs": db}},
+            upsert=True,
+        )
 
     def get_ruler(self, token: str):
         """Get the spec for which allow/deny rules this token's owner can set.
@@ -255,8 +259,10 @@ class Server:
             deny_filter["role"]["$in"].append("read")
         else:
             raise ValueError("role must be one of {'read','readWrite'}")
-        return (not (self.mgdb.deny.count(deny_filter, limit=1) > 0) and
-                self.mgdb.allow.count(allow_filter, limit=1) > 0)
+        return (
+            not (self.mgdb.deny.count(deny_filter, limit=1) > 0)
+            and self.mgdb.allow.count(allow_filter, limit=1) > 0
+        )
 
     def grant(self, email: str, host: str, db: str, role: str):
         """Grant and return credentials for role on host db to email owner.
@@ -274,10 +280,9 @@ class Server:
         if not self.can_grant(email, host, db, role):
             return None
         grant_filter = dict(email=email, host=host, db=db, role=role)
-        command = ("updateUser" if self.mgdb.grants.count(grant_filter)
-                   else "createUser")
+        command = "updateUser" if self.mgdb.grants.count(grant_filter) else "createUser"
         d = self.admin_client(host)[db]
-        username = "{}_{}".format("_".join(email.split('@')), role)
+        username = "{}_{}".format("_".join(email.split("@")), role)
         password = passphrase()
         try:
             d.command(command, username, pwd=password, roles=[role])
@@ -292,11 +297,13 @@ class Server:
             print(str(e))
             return None
         self.mgdb.grants.update_one(
-            grant_filter, {"$set": dict(username=username)}, upsert=True)
+            grant_filter, {"$set": dict(username=username)}, upsert=True
+        )
         return dict(username=username, password=password)
 
-    def revoke_grants(self, email: str,
-                      host: str = "*", db: str = "*", role: str = "*"):
+    def revoke_grants(
+        self, email: str, host: str = "*", db: str = "*", role: str = "*"
+    ):
         """Revoke credential grants to email owner. Drop user(s) on host db(s).
 
         Any of host,db,role can be "*", i.e. a wildcard. For example, if host is
@@ -318,8 +325,9 @@ class Server:
             db.command("dropUser", doc["username"])
         self.mgdb.grants.delete_many(grant_filter)
 
-    def generate_tokens(self, email: str,
-                        link_expires: str = "3 d", fetch_expires: str = "30 d"):
+    def generate_tokens(
+        self, email: str, link_expires: str = "3 d", fetch_expires: str = "30 d"
+    ):
         """Generate link (to confirm email) and fetch (to grant auth) tokens.
 
         Generate tokens if there is at least one allow rule for email.
@@ -345,9 +353,14 @@ class Server:
         fetch_expires = link_expires + timedelta(**{unit[u]: float(n)})
         self.mgdb.tokens.update_one(
             dict(email=email),
-            {"$push": {"fetch": dict(token=uuid4().hex, expires=fetch_expires),
-                       "link": dict(token=uuid4().hex, expires=link_expires)}},
-            upsert=True)
+            {
+                "$push": {
+                    "fetch": dict(token=uuid4().hex, expires=fetch_expires),
+                    "link": dict(token=uuid4().hex, expires=link_expires),
+                }
+            },
+            upsert=True,
+        )
         self.delete_expired_tokens()
         return True
 
@@ -355,10 +368,17 @@ class Server:
         """Delete expired tokens. Also, remove docs with no tokens."""
         now = datetime.utcnow()
         bulk_requests = []
-        docs = list(self.mgdb.tokens.find(
-            {"$or": [{"link.expires": {"$lte": now}},
-                     {"fetch.expires": {"$lte": now}},
-                     {"link": [], "fetch": []}]}))
+        docs = list(
+            self.mgdb.tokens.find(
+                {
+                    "$or": [
+                        {"link.expires": {"$lte": now}},
+                        {"fetch.expires": {"$lte": now}},
+                        {"link": [], "fetch": []},
+                    ]
+                }
+            )
+        )
         for d in docs:
             if not d["link"] and not d["fetch"]:
                 bulk_requests.append(DeleteOne(dict(_id=d["_id"])))
@@ -374,10 +394,12 @@ class Server:
             if not link and not fetch:
                 bulk_requests.append(DeleteOne(dict(_id=d["_id"])))
             else:
-                bulk_requests.append(ReplaceOne(
-                    dict(_id=d["_id"]),
-                    dict(email=d["email"], link=link, fetch=fetch)
-                ))
+                bulk_requests.append(
+                    ReplaceOne(
+                        dict(_id=d["_id"]),
+                        dict(email=d["email"], link=link, fetch=fetch),
+                    )
+                )
         if bulk_requests:
             self.mgdb.tokens.bulk_write(bulk_requests)
 
@@ -392,16 +414,21 @@ class Server:
             str: email address if fetch token not expired, None o/w.
         """
         when = datetime.min if expired_okay else datetime.utcnow()
-        doc = self.mgdb.tokens.find_one({
-            "fetch": {"$elemMatch": {"token": token,
-                                     "expires": {"$gte": when}}}
-        }, ["email"])
+        doc = self.mgdb.tokens.find_one(
+            {"fetch": {"$elemMatch": {"token": token, "expires": {"$gte": when}}}},
+            ["email"],
+        )
         if not doc:
             return None
         return doc["email"]
 
-    def send_link_token_mail(self, email: str, secure: bool = False,
-                             host: str = "localhost", dry_run: bool = False):
+    def send_link_token_mail(
+        self,
+        email: str,
+        secure: bool = False,
+        host: str = "localhost",
+        dry_run: bool = False,
+    ):
         """Send email to deliver fetch token via one-time link.
 
         Args:
@@ -415,18 +442,22 @@ class Server:
         """
         generated = self.generate_tokens(email)
         if not generated:
-            return ("Email {} not allowed by server. Contact server admin."
-                    .format(email))
+            return "Email {} not allowed by server. Contact server admin.".format(email)
         doc = self.mgdb.tokens.find_one(dict(email=email), ["link"])
         if not doc:
-            return ("Email {} allowed by server, but "
-                    "error in generating token. Contact server admin")
+            return (
+                "Email {} allowed by server, but "
+                "error in generating token. Contact server admin"
+            )
         doc["link"].sort(key=lambda t: t["expires"])
         link_token = doc["link"][-1]["token"]
         link = "{}://{}/verifytoken/{}".format(
-            "https" if secure else "http", host, link_token)
-        text = ("Retrieve your mongogrant fetch token by opening this "
-                "one-time link: {}".format(link))
+            "https" if secure else "http", host, link_token
+        )
+        text = (
+            "Retrieve your mongogrant fetch token by opening this "
+            "one-time link: {}".format(link)
+        )
         subject = "Mongogrant fetch token from {}".format(host)
         if not dry_run:
             self.mailer.send(to=email, subject=subject, text=text)
@@ -444,19 +475,21 @@ class Server:
             str: message with fetch token if link token is valid,
                 error message o/w.
         """
-        now  = datetime.utcnow()
-        doc = self.mgdb.tokens.find_one({
-            "link": {"$elemMatch": {"token": link_token,
-                                    "expires": {"$gte": now}}}
-        }, ["fetch"])
+        now = datetime.utcnow()
+        doc = self.mgdb.tokens.find_one(
+            {"link": {"$elemMatch": {"token": link_token, "expires": {"$gte": now}}}},
+            ["fetch"],
+        )
         if not doc:
             return "Link tokens expire. Request again."
 
         fetch = sorted(doc["fetch"], key=lambda t: t["expires"])[-1]
         self.mgdb.tokens.update_one(
-            dict(_id=doc["_id"]), {"$pull": {"link": {"token": link_token}}})
+            dict(_id=doc["_id"]), {"$pull": {"link": {"token": link_token}}}
+        )
         return "Fetch token: {} (expires {} UTC)".format(
-            fetch["token"], fetch["expires"])
+            fetch["token"], fetch["expires"]
+        )
 
     def grant_with_token(self, token: str, host: str, db: str, role: str):
         """Attempt to grant user/pass for role on host db given token.
@@ -493,7 +526,7 @@ def passphrase(n=5, sep="-", wordspath="/usr/share/dict/words"):
 
     words = set(line.strip().lower() for line in lines)
     joined_words = sep.join(random.sample(words, n))
-    # Strip single quote 
+    # Strip single quote
     joined_words = joined_words.replace("'", "")
     return joined_words
 
@@ -545,8 +578,6 @@ class Mailgun(Mailer):
         response = requests.post(
             self.base_url + "/messages",
             auth=("api", self.api_key),
-            data={"text": text,
-                  "from": self.from_addr,
-                  "to": to,
-                  "subject": subject})
+            data={"text": text, "from": self.from_addr, "to": to, "subject": subject},
+        )
         return response.ok
